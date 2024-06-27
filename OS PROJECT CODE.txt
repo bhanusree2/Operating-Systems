@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#define PAGE_SIZE 4096    // Page size in bytes
+#define NUM_FRAMES 4      // Number of frames in physical memory
+#define NUM_PAGES 8       // Number of pages in virtual memory
+
+// Structure representing a page table entry
+typedef struct {
+    int frame_number;
+    int valid_bit;
+} PageTableEntry;
+
+// Structure representing a page table
+typedef struct {
+    PageTableEntry entries[NUM_PAGES];
+} PageTable;
+
+// Structure representing a frame in physical memory
+typedef struct {
+    int page_number;
+} Frame;
+
+// Array representing physical memory (frames)
+Frame physical_memory[NUM_FRAMES];
+
+// Page table for mapping virtual pages to physical frames
+PageTable page_table;
+
+// FIFO queue for page replacement
+int fifo_queue[NUM_FRAMES];
+int queue_front = 0;
+int queue_rear = -1;
+int queue_size = 0;
+
+// Function to initialize the page table
+void initialize_page_table() {
+    for (int i = 0; i < NUM_PAGES; i++) {
+        page_table.entries[i].frame_number = -1;  // Initialize frame number to -1 (invalid)
+        page_table.entries[i].valid_bit = 0;      // Initialize valid bit to 0 (invalid)
+    }
+}
+
+// Function to initialize FIFO queue
+void initialize_fifo_queue() {
+    for (int i = 0; i < NUM_FRAMES; i++) {
+        fifo_queue[i] = -1;  // Initialize queue with invalid frame numbers
+    }
+}
+
+// Function to handle page faults using FIFO page replacement algorithm
+void handle_page_fault(int page_number) {
+    // Find the frame number to replace using FIFO
+    int frame_to_replace = fifo_queue[queue_front];
+
+    // Update page table for the new page
+    page_table.entries[page_number].frame_number = frame_to_replace;
+    page_table.entries[page_number].valid_bit = 1;
+
+    // Update physical memory
+    physical_memory[frame_to_replace].page_number = page_number;
+
+    // Update FIFO queue
+    queue_front = (queue_front + 1) % NUM_FRAMES;
+    queue_rear = (queue_rear + 1) % NUM_FRAMES;
+    fifo_queue[queue_rear] = frame_to_replace;
+}
+
+// Function to simulate accessing a virtual address
+void access_virtual_address(int virtual_address) {
+    int page_number = virtual_address / PAGE_SIZE;
+
+    if (page_table.entries[page_number].valid_bit == 0) {
+        printf("Page fault for virtual address %d\n", virtual_address);
+        handle_page_fault(page_number);
+    } else {
+        printf("Virtual address %d is in physical frame %d\n", virtual_address, page_table.entries[page_number].frame_number);
+    }
+}
+
+int main() {
+    // Initialize page table and FIFO queue
+    initialize_page_table();
+    initialize_fifo_queue();
+
+    // Simulate accessing virtual addresses
+    access_virtual_address(0);
+    access_virtual_address(4096);
+    access_virtual_address(8192);
+    access_virtual_address(12288);
+    access_virtual_address(16384);
+    access_virtual_address(20480);
+    access_virtual_address(24576);
+    access_virtual_address(28672);
+    access_virtual_address(32768);
+
+    return 0;
+}
